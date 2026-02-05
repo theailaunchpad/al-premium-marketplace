@@ -3,7 +3,7 @@
   "description": "Premium Claude Code plugins by AI Launchpad",
   "owner": {
     "name": "AI Launchpad",
-    "email": "support@ailaunchpad.org"
+    "email": "kennyliao@theailaunchpad.io"
   },
   "metadata": {
     "pluginRoot": "./plugins"
