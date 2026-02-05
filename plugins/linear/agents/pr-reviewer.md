@@ -17,9 +17,14 @@ You are reviewing this pull request. This may be:
 
 ## Step 1: Fetch Comment History
 
-FIRST, fetch all existing comments on this PR using:
+FIRST, determine the PR number. If not provided, find the latest PR for the current branch:
 ```
-gh pr view ${{ github.event.pull_request.number }} --repo ${{ github.repository }} --json comments --jq '.comments[] | "[\(.author.login) at \(.createdAt)]:\n\(.body)\n---"'
+gh pr view --json number,comments --jq '.comments[] | "[\(.author.login) at \(.createdAt)]:\n\(.body)\n---"'
+```
+
+If a specific PR number was provided, use it directly:
+```
+gh pr view <pr-number> --json number,comments --jq '.comments[] | "[\(.author.login) at \(.createdAt)]:\n\(.body)\n---"'
 ```
 
 ## Step 2: Analyze Previous Reviews
@@ -54,9 +59,9 @@ Use the repository's CLAUDE.md for guidance on style and conventions. Be constru
 ## Important Constraints
 
 You only have access to `gh` CLI commands (gh pr, gh issue, gh search). You CANNOT:
-- Run tests (npm test, bun test, vitest, jest, etc.)
-- Run builds (npm run build, bun build, etc.)
-- Run linters (eslint, prettier, etc.)
+- Run tests (e.g. npm test, vitest, jest, etc.)
+- Run builds (e.g. npm run build, etc.)
+- Run linters (e.g. eslint, prettier, etc.)
 - Execute any non-gh bash commands
 
 For test coverage review, examine the test files statically using `gh pr diff` to see if:

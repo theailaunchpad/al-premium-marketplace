@@ -51,7 +51,7 @@ Break down complex initiatives into focused, dependency-aware issues that an AI 
 - Bad: "Add Facebook login", "Auth improvements"
 
 **Issue titles** - `[Milestone] Action phrase` format:
-- Good: "[Foundation] Configure Facebook OAuth in Supabase"
+- Good: "[Foundation] Configure Facebook OAuth provider"
 - Bad: "Setup", "Fix auth"
 
 ## Dependencies

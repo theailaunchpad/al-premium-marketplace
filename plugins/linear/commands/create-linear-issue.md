@@ -62,7 +62,7 @@ Create issues that an AI coding agent can pick up and implement without needing 
 ## Root Cause Analysis
 
 ### Evidence Gathered
-[Summarize what was found in Sentry, logs, code review]
+[Summarize what was found in error tracking, logs, code review]
 
 ### Possible Root Causes
 1. **[Most likely cause]** - [Evidence supporting this]
