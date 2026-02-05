@@ -1,0 +1,24 @@
+{
+  "name": "ai-launchpad-marketplace",
+  "description": "Premium Claude Code plugins by AI Launchpad",
+  "owner": {
+    "name": "AI Launchpad",
+    "email": "support@ailaunchpad.org"
+  },
+  "metadata": {
+    "pluginRoot": "./plugins"
+  },
+  "plugins": [
+    {
+      "name": "linear",
+      "source": "./plugins/linear",
+      "description": "Linear issue tracking integration. Create issues, manage projects, update statuses, search across workspaces, and streamline your software development workflow with Linear's modern issue tracker.",
+      "version": "1.0.0",
+      "author": {
+        "name": "AI Launchpad"
+      },
+      "category": "productivity",
+      "tags": ["linear", "issue-tracking", "project-management"]
+    }
+  ]
+}
