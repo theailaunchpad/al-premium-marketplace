@@ -5,7 +5,7 @@ Premium Claude Code plugins by AI Launchpad.
 ## Installation
 
 ```
-/plugin marketplace add ailaunchpad-org/ai-launchpad-marketplace
+/plugin marketplace add theailaunchpad/ai-launchpad-marketplace
 ```
 
 ## Available Plugins
