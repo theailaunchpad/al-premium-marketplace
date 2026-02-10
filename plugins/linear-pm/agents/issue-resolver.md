@@ -34,21 +34,37 @@ git pull origin main --rebase
 
 ## Resolving an Issue
 
-You *MUST* use the `resolve-linear-issue` skill for each issue:
+You MUST invoke the `resolve-linear-issue` skill using the Skill tool
+before starting any implementation work. Do NOT use the abbreviated
+steps below as a substitute - the skill contains the complete workflow.
 
-1. Get issue details via `mcp__linear__get_issue`
-2. Branch is already created (verify you are on it)
-3. Call a Plan agent to investigate + generate TDD plan
-4. Implement using TDD, commit, push, open PR
-5. Monitor PR checks, fix failures
-6. Call the `pr-reviewer` agent, iterate until approved
-7. Update the Linear issue with findings
+To invoke: Use the Skill tool with skill name "resolve-linear-issue"
+
+The skill handles the full lifecycle:
+- Investigation and TDD planning (via Plan agent)
+- Implementation, testing, commit, push, PR creation (via General agent)
+- PR check monitoring and failure fixing
+- PR review via pr-reviewer agent with iteration until approved
+- Linear issue update with findings
+
+CRITICAL: The workflow is NOT complete when the PR is opened.
+Steps 5-8 of the skill (PR checks, pr-reviewer loop, Linear update)
+are mandatory. Do NOT mark the task as completed or message the team
+lead until the ENTIRE skill workflow has finished.
 
 ## Communication Protocol
 
 - **Starting a task**: Mark it `in_progress` via TaskUpdate
-- **Task complete**: Mark it `completed` via TaskUpdate, then
-  message the team lead with: issue identifier, PR URL, summary
+- **Task complete**: A task is complete ONLY when the full
+  resolve-linear-issue skill workflow has finished, meaning:
+  - PR checks have passed (or been fixed)
+  - pr-reviewer agent has reviewed and approved the PR
+  - Linear issue has been updated with findings
+  Mark it `completed` via TaskUpdate, then message the team lead
+  with: issue identifier, PR URL, review status, and summary.
+  Do NOT mark complete after just opening a PR.
+- **PR opened (intermediate)**: This is NOT task completion.
+  Continue with PR check monitoring and pr-reviewer review cycle.
 - **Problem encountered**: Message the team lead describing the
   problem before attempting to resolve it yourself
 - **No tasks available**: Notify the team lead you are idle

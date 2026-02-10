@@ -69,6 +69,20 @@ Example: `.worktrees/eng-123` with branch `eng-123-configure-oauth`
 
 Run project setup in each worktree (auto-detect: npm install, etc.).
 
+After project setup, copy environment files from the main working
+directory to each worktree. Environment files (`.env`, `.env.local`,
+`.env.test`, etc.) are typically gitignored and will NOT exist in
+new worktrees:
+
+```bash
+# Copy all .env* files from main working directory to worktree
+# Adjust source path based on project structure (root, frontend/, etc.)
+cp <main-dir>/.env* <worktree-path>/  2>/dev/null || true
+```
+
+If the project has nested env files (e.g. `frontend/.env.local`),
+copy those to the corresponding subdirectory in the worktree.
+
 ### 5. Create Agent Team
 
 Use Teammate tool:
@@ -83,8 +97,12 @@ description: "Resolving all issues in Linear project: <project name>"
 
 For EACH open issue, use TaskCreate:
 - subject: "Resolve \<issue-identifier\>: \<issue-title\>"
-- description: Include issue ID, worktree path (for Wave 0 issues),
-  and: "Use the resolve-linear-issue skill workflow."
+- description: Include issue ID, identifier, worktree path (for Wave 0 issues),
+  and: "You MUST invoke the resolve-linear-issue skill using the Skill
+  tool before starting any implementation work."
+  Do NOT include inline step-by-step instructions in the task description.
+  The skill contains the complete workflow including post-PR review steps
+  that are critical and easy to accidentally omit when paraphrasing.
 - activeForm: "Resolving \<issue-identifier\>"
 
 Then establish dependencies via TaskUpdate:
@@ -101,9 +119,22 @@ using the Task tool:
 - team_name: the team name from Step 5
 - name: "\<issue-identifier\>-resolver" (e.g., "eng-101-resolver")
 - subagent_type: "general-purpose"
-- prompt: Include the full issue-resolver agent instructions (see
-  `issue-resolver` agent definition). Include the team name and
-  instruct them to check the shared task list.
+- prompt: Instruct the teammate to:
+  1. Check the shared task list for their assigned task
+  2. Read the task to get issue ID and worktree path
+  3. Change to the worktree directory
+  4. Invoke the `resolve-linear-issue` skill using the Skill tool
+     (do NOT paraphrase or abbreviate the workflow)
+  5. After the skill completes, message the team lead
+
+  CRITICAL: Do NOT include inline step-by-step implementation
+  instructions in the prompt. The resolve-linear-issue skill contains
+  the complete workflow including PR check monitoring, pr-reviewer
+  iteration, and Linear issue updates. Inlining abbreviated steps
+  causes agents to skip these critical post-PR stages.
+
+  Include the team name and any worktree-specific context (path,
+  branch name, environment setup notes).
 
 The issue identifier in the name gives immediate observability into
 which issue each teammate is working on.
@@ -124,6 +155,17 @@ focused on coordination.
 
 a. **On task completion message from teammate:**
    - Verify task is marked completed in TaskList
+   - **Verify genuine completion** before proceeding. The teammate's
+     message must confirm ALL of the following:
+     - PR checks have passed (or been fixed)
+     - pr-reviewer agent was called and the PR was approved
+     - Linear issue was updated with findings
+     If the teammate only reports "PR created/opened" without these
+     confirmations, send a message asking them to complete the
+     remaining resolve-linear-issue workflow steps (PR check
+     monitoring, pr-reviewer review cycle, Linear update) before
+     marking the task done. Do NOT send shutdown_request until
+     these are confirmed.
    - Coordinate PR merge order: foundational PRs first
    - After merging a PR, notify active teammates to rebase
    - Create worktrees for newly-unblocked Wave N issues
