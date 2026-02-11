@@ -1,9 +1,6 @@
 ---
 name: resolve-linear-project
-description: Use when resolving all issues in a Linear project end-to-end.
-  Launches parallel headless Claude Code processes, each resolving one
-  issue in its own git worktree. Dependencies are respected via
-  wave-based execution.
+description: Use when resolving all issues in a Linear project end-to-end. Launches parallel headless Claude Code processes, each resolving one issue in its own git worktree. Dependencies are respected via wave-based execution.
 ---
 
 # Resolve Linear Project
