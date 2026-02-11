@@ -1,5 +1,7 @@
 node_modules/
 test-manifest.json
+test-manifest-single.json
 .test-repos/
 .env
 .env.*
+claude-debug-output.jsonl

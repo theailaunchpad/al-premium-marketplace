@@ -4,12 +4,17 @@
   "type": "module",
   "scripts": {
     "setup": "bun run setup-test-project.ts",
-    "teardown": "bun run teardown-test-project.ts"
+    "teardown": "bun run teardown-test-project.ts",
+    "setup:single": "bun run setup-single-issue.ts",
+    "teardown:single": "bun run teardown-single-issue.ts",
+    "test:e2e": "bun test e2e/ --timeout 1800000",
+    "test:e2e:issue-a": "bun test e2e/resolve-issue.test.ts --timeout 1800000"
   },
   "dependencies": {
     "@linear/sdk": "^37.0.0"
   },
   "devDependencies": {
+    "@types/bun": "latest",
     "@types/node": "^22.0.0",
     "typescript": "^5.7.0"
   }
