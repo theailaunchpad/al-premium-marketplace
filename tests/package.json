@@ -1,0 +1,16 @@
+{
+  "name": "linear-pm-tests",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "setup": "bun run setup-test-project.ts",
+    "teardown": "bun run teardown-test-project.ts"
+  },
+  "dependencies": {
+    "@linear/sdk": "^37.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.0"
+  }
+}
