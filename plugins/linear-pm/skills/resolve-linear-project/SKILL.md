@@ -1,12 +1,15 @@
 ---
 name: resolve-linear-project
-description: Use when resolving all issues in a Linear project end-to-end. Spawns parallel Claude Code workers via the Agent SDK, each resolving one issue in its own git worktree. Dependencies are respected via wave-based execution.
+description: Use when resolving all issues in a Linear project end-to-end.
+  Launches parallel headless Claude Code processes, each resolving one
+  issue in its own git worktree. Dependencies are respected via
+  wave-based execution.
 ---
 
 # Resolve Linear Project
 
 Orchestrate resolving ALL issues in a Linear project.
-Each issue is resolved by an independent Claude Code worker session
+Each issue is resolved by a headless Claude Code process (`claude -p`)
 running in its own git worktree. Issue dependencies are respected
 via wave-based execution (Wave 0 completes before Wave 1 starts).
 
@@ -14,7 +17,6 @@ Start by creating a TODO list to complete all steps outlined below.
 
 ## Prerequisites
 
-- `uv` installed (Python package runner — handles Python + dependencies automatically)
 - Git worktrees support (standard git)
 - Linear MCP configured
 
@@ -54,20 +56,9 @@ Cap at 3 concurrent workers. Linear projects are 5-7 issues max;
 more than 3 creates diminishing returns from overhead and merge
 conflict risk.
 
-### 4. Verify Prerequisites
+### 4. Process Each Wave (repeat for Wave 0, 1, ..., N)
 
-Run via Bash:
-
-```bash
-uv run --script plugins/linear-pm/skills/resolve-linear-project/wave_orchestrator.py --dry-run <<< '{"issues":[],"main_project_dir":"."}'
-```
-
-This verifies that `uv` can resolve dependencies and execute the script.
-If it fails, stop and report the error to the user.
-
-### 5. Process Each Wave (repeat for Wave 0, 1, ..., N)
-
-#### 5a. Create Git Worktrees for Current Wave
+#### 4a. Create Git Worktrees for Current Wave
 
 **REQUIRED:** Use the `using-git-worktrees` skill conventions for
 directory selection and safety verification.
@@ -93,63 +84,58 @@ cp <main-dir>/.env* <worktree-path>/  2>/dev/null || true
 If the project has nested env files (e.g. `frontend/.env.local`),
 copy those to the corresponding subdirectory in the worktree.
 
-#### 5b. Build Wave Config JSON
+#### 4b. Launch Headless Workers
 
-Write a temporary JSON file (`/tmp/wave_config_<wave>.json`) with:
-
-```json
-{
-  "issues": [
-    {
-      "id": "<linear-issue-id>",
-      "identifier": "ENG-101",
-      "title": "Configure OAuth",
-      "worktree_path": "/absolute/path/to/.worktrees/eng-101",
-      "branch_name": "eng-101-configure-oauth"
-    }
-  ],
-  "main_project_dir": "/absolute/path/to/project",
-  "max_concurrent": 3
-}
-```
-
-#### 5c. Run Wave Orchestrator (foreground Bash)
+For each issue in this wave (up to `max_concurrent`), launch a
+headless Claude Code process using the **Bash tool with
+`run_in_background: true`**:
 
 ```bash
-uv run --script plugins/linear-pm/skills/resolve-linear-project/wave_orchestrator.py /tmp/wave_config_<wave>.json
+cd <worktree-path> && claude -p \
+  "Resolve Linear issue <IDENTIFIER> (ID: <ISSUE-ID>). \
+   You MUST invoke the resolve-linear-issue skill using the Skill tool \
+   before starting any implementation work. \
+   The workflow is NOT complete until: PR checks pass, pr-reviewer \
+   approves the PR, and the Linear issue is updated." \
+  --dangerously-skip-permissions \
+  --max-turns 200 \
+  --output-format json \
+  --plugin-dir plugins/linear-pm
 ```
 
-This blocks until all workers in the wave complete. Progress streams
-to stdout so the user can see real-time status of each worker.
+Each Bash call returns a `task_id`. Record the mapping of
+task_id to issue identifier and branch name.
 
-Set a generous timeout (e.g. 30 minutes) since workers may take
-significant time to resolve complex issues.
+Launch all workers for the current wave in a **single message**
+with parallel Bash tool calls (one per issue).
 
-#### 5d. Parse Results
+#### 4c. Wait for Workers to Complete
 
-Read everything after the `---RESULTS---` delimiter as JSON array.
-Each element has:
-- `issue_id`, `identifier` — which issue
-- `success` — boolean
-- `error` — error message if failed
-- `session_id` — for potential retry
-- `cost_usd`, `num_turns` — cost tracking
+Use the **TaskOutput tool** with `block: true` for each task_id.
+Set a generous timeout (e.g. 600000ms / 10 minutes per check).
 
-For each successful result: verify PR exists with
-`gh pr list --head <branch>`.
+The JSON output from each worker includes:
+- `is_error` — whether the worker failed
+- `result` — the worker's final message
+- `cost_usd` — cost tracking
+- `num_turns` — turn count
+- `session_id` — for debugging
 
-For each failed result: record error and session_id.
+#### 4d. Handle Failures
 
-#### 5e. Handle Failures
+For each completed worker, check `is_error` in the JSON output.
 
 - If a failed issue has no downstream dependencies in later waves:
   continue to merge successful PRs and proceed to the next wave.
 - If a failed issue blocks downstream issues: report to the user
   and ask whether to retry, skip (remove dependent issues), or abort.
-- To retry: re-run the orchestrator with only the failed issues
-  (write a new config JSON with just those issues).
+- To retry: re-launch just the failed workers using the same
+  approach as Step 4b.
 
-#### 5f. Merge PRs in Dependency Order
+For each successful worker: verify PR exists with
+`gh pr list --head <branch>`.
+
+#### 4e. Merge PRs in Dependency Order
 
 For each successful issue in this wave, merge its PR:
 
@@ -163,7 +149,7 @@ based on post-merge main automatically.
 
 Wait for each merge to complete before creating next-wave worktrees.
 
-### 6. Cleanup
+### 5. Cleanup
 
 Once ALL waves are complete:
 
@@ -185,10 +171,9 @@ b. Update the Linear project with a summary of all resolved issues,
 - Merge Wave N+1 PRs before Wave N PRs
 - Leave worktrees uncleaned after completion
 - Inline resolve-linear-issue steps in worker prompts
-  (the orchestrator handles this via the Skill tool invocation)
 
 **Always:**
 - Create worktrees lazily (per wave, not all at once)
 - Merge PRs in dependency order
 - Verify PR approval before merging
-- Parse and verify orchestrator results before merging
+- Check `is_error` in worker output before merging
