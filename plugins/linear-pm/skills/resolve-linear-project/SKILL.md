@@ -5,6 +5,25 @@ description: Use when resolving all issues in a Linear project end-to-end. Launc
 
 # Resolve Linear Project
 
+> **BETA WARNING:** This skill is still under active testing and is not yet
+> robust. It may produce unexpected results, fail mid-execution, or require
+> manual intervention. Use at your own risk.
+
+**REQUIRED: Before proceeding, you MUST use the `AskUserQuestion` tool to get
+explicit confirmation from the user.** Present the following warning:
+
+> This skill launches multiple headless Claude Code processes to resolve an
+> entire Linear project in parallel. It is currently in **beta** and may:
+> - Fail partway through, leaving partial worktrees or branches
+> - Incur significant API costs (each issue spawns a full agent session)
+> - Require manual cleanup if something goes wrong
+>
+> Are you sure you want to proceed?
+
+**Do NOT continue past this point unless the user explicitly confirms.**
+
+---
+
 Orchestrate resolving ALL issues in a Linear project.
 Each issue is resolved by a headless Claude Code process (`claude -p`)
 running in its own git worktree. Issue dependencies are respected
