@@ -35,8 +35,65 @@ Start by creating a TODO list to complete all steps outlined below.
 
 - Git worktrees support (standard git)
 - Linear MCP configured
+- **Optional:** If your repository's default branch isn't `main` (e.g., `production`, `develop`), add this line to your project's `CLAUDE.md` so it's detected automatically:
+  ```
+  Default branch: production
+  ```
+  The preflight step will detect it if you don't, but setting it yourself avoids the detection step and guarantees it's correct from the start.
 
 ## Steps
+
+### 0. Preflight Checks
+
+Before any work begins, run these checks to ensure a safe starting point.
+
+#### 0a. Clean Working Directory
+
+Run `git status --porcelain`. If the output is non-empty, tell the user:
+
+> "You have unsaved changes in your project. I need a clean starting point before we begin. Here are your options:"
+>
+> 1. **Commit (save permanently)** — I'll save your current changes as a commit so they're part of your project history. Nothing is lost.
+> 2. **Stash (set aside for later)** — I'll tuck your changes away temporarily. You can bring them back later, but they won't be in your project history. Think of it like putting papers in a drawer.
+> 3. **I'll handle it myself** — I'll stop here so you can take care of it however you'd like.
+
+- If the user chooses **commit**: commit with message `chore: save work-in-progress before resolving project` and push.
+- If the user chooses **stash**: run `git stash push -m "WIP before resolving project"` and tell the user: "Your changes are stashed. When you want them back later, run: `git stash pop`"
+- If the user chooses to handle it themselves: **STOP** the skill entirely. Do not proceed.
+
+#### 0b. Detect Default Branch
+
+Use a three-tier detection cascade to determine the repository's default branch:
+
+1. `git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@'`
+2. If empty: `git remote show origin 2>/dev/null | grep 'HEAD branch' | sed 's/.*: //'`
+3. If still empty: `git branch -r --list 'origin/main' 'origin/master' 'origin/develop' 'origin/production' | head -1 | sed 's@.*origin/@@' | xargs`
+
+If all three methods fail, ask the user for their default branch name.
+
+Store the result as `DEFAULT_BRANCH` and use it for all branch references in the rest of this workflow.
+
+**Persist the result:** Check the project's `CLAUDE.md` for a `Default branch:` line.
+- If `CLAUDE.md` already has the line, use that value directly and skip detection.
+- If it's missing, append it (e.g., `Default branch: production`) and tell the user: "I've saved your default branch as `<DEFAULT_BRANCH>` in your project's `CLAUDE.md` so I'll remember it for future sessions. You can change it there anytime."
+
+#### 0c. Safety Checkpoint
+
+Internally note the current position (no commit is created — this just reads where you are):
+
+- Current commit: `git rev-parse HEAD` -> `RESTORE_POINT`
+- Current branch: `git branch --show-current` -> `ORIGINAL_BRANCH`
+
+These values are used for rollback guidance in the final step. Then offer the user:
+
+> "Before I start, I can set up a safety bookmark — this just notes where your project is right now so we can undo everything if needed. No extra changes are made. Would you like me to set that up?"
+
+- If the user agrees, tell them: "Safety bookmark set. Your project is currently at commit `<short hash>` on branch `<ORIGINAL_BRANCH>`. If anything goes wrong, I'll give you a simple way to get back to exactly this point."
+- If the user declines, that's fine — continue without mentioning it. The values are still recorded internally for rollback guidance.
+
+#### 0d. Verify Remote Access
+
+Run `git fetch origin` to confirm the remote is accessible. If it fails, **STOP** and tell the user to check their credentials or network connection.
 
 ### 1. Fetch Project and Issues
 
@@ -82,7 +139,7 @@ directory selection and safety verification.
 For each issue in this wave:
 
 ```bash
-git worktree add .worktrees/<issue-identifier> -b <issue-identifier>-<slug>
+git worktree add .worktrees/<issue-identifier> -b <issue-identifier>-<slug> origin/<DEFAULT_BRANCH>
 ```
 
 Example: `.worktrees/eng-123` with branch `eng-123-configure-oauth`
@@ -109,6 +166,8 @@ headless Claude Code process using the **Bash tool with
 ```bash
 cd <worktree-path> && claude -p \
   "Resolve Linear issue <IDENTIFIER> (ID: <ISSUE-ID>). \
+   The repository's default branch is '<DEFAULT_BRANCH>' -- use this \
+   instead of assuming 'main'. \
    You MUST invoke the resolve-linear-issue skill using the Skill tool \
    before starting any implementation work. \
    The workflow is NOT complete until: PR checks pass, pr-reviewer \
@@ -161,7 +220,7 @@ gh pr merge <pr-number> --merge
 
 Merge foundational PRs first (those that other issues depend on).
 Since next-wave worktrees haven't been created yet, they'll be
-based on post-merge main automatically.
+based on post-merge `DEFAULT_BRANCH` automatically.
 
 Wait for each merge to complete before creating next-wave worktrees.
 
@@ -177,6 +236,17 @@ for each worktree created.
 
 b. Update the Linear project with a summary of all resolved issues,
    including cost and success/failure status.
+
+## Rollback Guidance
+
+After all waves complete (or if the workflow is aborted), provide the user with a summary of how to undo the changes:
+
+1. **Close open PRs**: `gh pr close <PR-NUMBER>` for each unmerged PR, or revert merged PRs with `git revert <merge-commit>`.
+2. **Restore code to pre-session state**: `git checkout <ORIGINAL_BRANCH> && git reset --hard <RESTORE_POINT>` (values from Step 0c).
+3. **Delete issue branches**: `git branch -D <branch>` and `git push origin --delete <branch>` for each branch created.
+4. **Remove worktrees**: `git worktree remove .worktrees/<identifier>` for any remaining worktrees.
+5. **Migration rollback**: List rollback commands for any migrations run by workers, or state "No migrations were run."
+6. Post this rollback guidance as a comment on the Linear project so it's preserved for reference.
 
 ## Red Flags
 

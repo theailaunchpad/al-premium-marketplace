@@ -25,11 +25,18 @@ Your worktree is an isolated copy of the repository. You MUST:
 - NEVER modify files outside your worktree
 - Use the branch already checked out in the worktree
 
-Before starting work, pull the latest base branch changes:
+Before starting work, detect the default branch and pull latest changes:
 
 ```
 cd <worktree-path>
-git pull origin main --rebase
+DEFAULT_BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@')
+if [ -z "$DEFAULT_BRANCH" ]; then
+  DEFAULT_BRANCH=$(git remote show origin 2>/dev/null | grep 'HEAD branch' | sed 's/.*: //')
+fi
+if [ -z "$DEFAULT_BRANCH" ]; then
+  DEFAULT_BRANCH="main"
+fi
+git pull origin "$DEFAULT_BRANCH" --rebase
 ```
 
 ## Resolving an Issue
@@ -74,7 +81,7 @@ lead until the ENTIRE skill workflow has finished.
 - Own ONE task at a time
 - Work in ONE worktree at a time
 - NEVER modify files outside your worktree
-- NEVER push to main/master directly
+- NEVER push directly to the default branch
 - ALWAYS open a PR for review
 - If a task has unresolved blockedBy dependencies, do NOT start it
 
