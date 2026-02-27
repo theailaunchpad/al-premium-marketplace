@@ -45,60 +45,12 @@ Start by creating a TODO list to complete all steps outlined below.
 
 ### 0. Preflight Checks
 
-Before any work begins, run these checks to ensure a safe starting point.
-
-#### 0a. Clean Working Directory
-
-Run `git status --porcelain`. If the output is non-empty, tell the user:
-
-> "You have unsaved changes in your project. I need a clean starting point before we begin. Here are your options:"
->
-> 1. **Commit (save permanently)** — I'll save your current changes as a commit so they're part of your project history. Nothing is lost.
-> 2. **Stash (set aside for later)** — I'll tuck your changes away temporarily. You can bring them back later, but they won't be in your project history. Think of it like putting papers in a drawer.
-> 3. **I'll handle it myself** — I'll stop here so you can take care of it however you'd like.
-
-- If the user chooses **commit**: commit with message `chore: save work-in-progress before resolving project` and push.
-- If the user chooses **stash**: run `git stash push -m "WIP before resolving project"` and tell the user: "Your changes are stashed. When you want them back later, run: `git stash pop`"
-- If the user chooses to handle it themselves: **STOP** the skill entirely. Do not proceed.
-
-#### 0b. Detect Default Branch
-
-Use a three-tier detection cascade to determine the repository's default branch:
-
-1. `git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@'`
-2. If empty: `git remote show origin 2>/dev/null | grep 'HEAD branch' | sed 's/.*: //'`
-3. If still empty: `git branch -r --list 'origin/main' 'origin/master' 'origin/develop' 'origin/production' | head -1 | sed 's@.*origin/@@' | xargs`
-
-If all three methods fail, ask the user for their default branch name.
-
-Store the result as `DEFAULT_BRANCH` and use it for all branch references in the rest of this workflow.
-
-**Persist the result:** Check the project's `CLAUDE.md` for a `Default branch:` line.
-- If `CLAUDE.md` already has the line, use that value directly and skip detection.
-- If it's missing, append it (e.g., `Default branch: production`) and tell the user: "I've saved your default branch as `<DEFAULT_BRANCH>` in your project's `CLAUDE.md` so I'll remember it for future sessions. You can change it there anytime."
-
-#### 0c. Safety Checkpoint
-
-Internally note the current position (no commit is created — this just reads where you are):
-
-- Current commit: `git rev-parse HEAD` -> `RESTORE_POINT`
-- Current branch: `git branch --show-current` -> `ORIGINAL_BRANCH`
-
-These values are used for rollback guidance in the final step. Then offer the user:
-
-> "Before I start, I can set up a safety bookmark — this just notes where your project is right now so we can undo everything if needed. No extra changes are made. Would you like me to set that up?"
-
-- If the user agrees, tell them: "Safety bookmark set. Your project is currently at commit `<short hash>` on branch `<ORIGINAL_BRANCH>`. If anything goes wrong, I'll give you a simple way to get back to exactly this point."
-- If the user declines, that's fine — continue without mentioning it. The values are still recorded internally for rollback guidance.
-
-#### 0d. Verify Remote Access
-
-Run `git fetch origin` to confirm the remote is accessible. If it fails, **STOP** and tell the user to check their credentials or network connection.
+Follow the steps in [`shared/preflight-checks.md`](../shared/preflight-checks.md) with `<CONTEXT>` = `resolving project`.
 
 ### 1. Fetch Project and Issues
 
-Use `mcp__linear__get_project` to fetch the project.
-Then use `mcp__linear__list_issues` filtered to the project
+Use the `get_project` tool from the Linear MCP server to fetch the project.
+Then use the `list_issues` tool from the Linear MCP server, filtered to the project,
 to get ALL issues.
 
 Collect for each issue:
@@ -263,3 +215,17 @@ After all waves complete (or if the workflow is aborted), provide the user with 
 - Merge PRs in dependency order
 - Verify PR approval before merging
 - Check `is_error` in worker output before merging
+
+## Architecture Note
+
+This skill uses headless `claude -p` processes (Step 4b) rather than the
+Agent Teams system (`TeamCreate` / `SendMessage`). Each worker is a
+fully independent Claude Code session that invokes the
+`resolve-linear-issue` skill on its own. The orchestrator (this skill)
+communicates with workers only through their JSON output and git
+artifacts (branches, PRs), not through inter-agent messaging.
+
+The `issue-resolver` agent, by contrast, is designed for Agent Teams
+where a team lead assigns tasks via `TaskUpdate` and teammates
+coordinate through `SendMessage`. Both approaches resolve the same
+`resolve-linear-issue` skill, but the coordination layer differs.

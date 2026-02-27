@@ -5,7 +5,7 @@ description: Resolve a linear issue end-to-end using Test Driven Development. Th
 
 # Resolve Linear Issue
 
-This a workflow to resolve a Linear issue end-to-end using Test Driven Development (TDD). It is designed to be flexible and adaptable to different types of issues. Use your understanding of the issue, project context, tools, etc. to adjust the workflow as needed. You should leverage your team of agents whenever possible - see specifically the steps that call for "General", "Plan", and "test-analyzer" agents.
+This is a workflow to resolve a Linear issue end-to-end using Test Driven Development (TDD). It is designed to be flexible and adaptable to different types of issues. Use your understanding of the issue, project context, tools, etc. to adjust the workflow as needed. You should leverage your team of agents whenever possible - see specifically the steps that call for "General" and "Plan" agents, and the pr-reviewer and root-cause-analyzer agents.
 
 Start by creating a TODO list to complete all steps outlined below.
 
@@ -23,59 +23,11 @@ The preflight step will detect it automatically if you don't, but setting it you
 
 ### 0. Preflight Checks
 
-Before any work begins, run these checks to ensure a safe starting point.
-
-#### 0a. Clean Working Directory
-
-Run `git status --porcelain`. If the output is non-empty, tell the user:
-
-> "You have unsaved changes in your project. I need a clean starting point before we begin. Here are your options:"
->
-> 1. **Commit (save permanently)** — I'll save your current changes as a commit so they're part of your project history. Nothing is lost.
-> 2. **Stash (set aside for later)** — I'll tuck your changes away temporarily. You can bring them back later, but they won't be in your project history. Think of it like putting papers in a drawer.
-> 3. **I'll handle it myself** — I'll stop here so you can take care of it however you'd like.
-
-- If the user chooses **commit**: commit with message `chore: save work-in-progress before resolving <ISSUE-ID>` and push.
-- If the user chooses **stash**: run `git stash push -m "WIP before resolving <ISSUE-ID>"` and tell the user: "Your changes are stashed. When you want them back later, run: `git stash pop`"
-- If the user chooses to handle it themselves: **STOP** the skill entirely. Do not proceed.
-
-#### 0b. Detect Default Branch
-
-Use a three-tier detection cascade to determine the repository's default branch:
-
-1. `git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@'`
-2. If empty: `git remote show origin 2>/dev/null | grep 'HEAD branch' | sed 's/.*: //'`
-3. If still empty: `git branch -r --list 'origin/main' 'origin/master' 'origin/develop' 'origin/production' | head -1 | sed 's@.*origin/@@' | xargs`
-
-If all three methods fail, ask the user for their default branch name.
-
-Store the result as `DEFAULT_BRANCH` and use it for all branch references in the rest of this workflow.
-
-**Persist the result:** Check the project's `CLAUDE.md` for a `Default branch:` line.
-- If `CLAUDE.md` already has the line, use that value directly and skip detection.
-- If it's missing, append it (e.g., `Default branch: production`) and tell the user: "I've saved your default branch as `<DEFAULT_BRANCH>` in your project's `CLAUDE.md` so I'll remember it for future sessions. You can change it there anytime."
-
-#### 0c. Safety Checkpoint
-
-Internally note the current position (no commit is created — this just reads where you are):
-
-- Current commit: `git rev-parse HEAD` -> `RESTORE_POINT`
-- Current branch: `git branch --show-current` -> `ORIGINAL_BRANCH`
-
-These values are used for rollback guidance in the final step. Then offer the user:
-
-> "Before I start, I can set up a safety bookmark — this just notes where your project is right now so we can undo everything if needed. No extra changes are made. Would you like me to set that up?"
-
-- If the user agrees, tell them: "Safety bookmark set. Your project is currently at commit `<short hash>` on branch `<ORIGINAL_BRANCH>`. If anything goes wrong, I'll give you a simple way to get back to exactly this point."
-- If the user declines, that's fine — continue without mentioning it. The values are still recorded internally for rollback guidance.
-
-#### 0d. Verify Remote Access
-
-Run `git fetch origin` to confirm the remote is accessible. If it fails, **STOP** and tell the user to check their credentials or network connection.
+Follow the steps in [`shared/preflight-checks.md`](../shared/preflight-checks.md) with `<CONTEXT>` = `resolving <ISSUE-ID>`.
 
 ### 1. Get issue details
 
-Use the `mcp__linear__get_issue` tool directly to fetch the issue details (e.g. with `{"id": "<issue-id>"}`).
+Use the `get_issue` tool from the Linear MCP server to fetch the issue details (e.g. with `{"id": "<issue-id>"}`).
 
 ### 2. Generate issue branch
 
@@ -96,7 +48,7 @@ The following instructions are an example, modify or add as needed.
 <example_prompt>
 You **MUST** use the test-driven-development skill for this task. Start by invoking the skill to understand the implementation strategy.
 
-Use the `mcp__linear__get_issue` tool directly to fetch the issue details (e.g. with `{"id": "<issue-id>"}`).
+The issue details have already been fetched in Step 1 — use those directly instead of re-fetching.
 
 Gather additional context if relevant, e.g.:
 

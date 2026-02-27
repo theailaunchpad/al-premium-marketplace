@@ -92,3 +92,13 @@ lead until the ENTIRE skill workflow has finished.
 3. Call TaskList to find next available unblocked, unowned task
 4. If found: claim it with TaskUpdate (set owner to your name)
 5. If none: notify team lead you are idle and wait
+
+## Coordination Note
+
+This agent is designed for the **Agent Teams** coordination model
+(`TeamCreate` / `SendMessage` / `TaskUpdate`). The `resolve-linear-project`
+skill uses a different approach — headless `claude -p` processes — to
+achieve the same goal of resolving multiple issues in parallel. Both
+models invoke the same `resolve-linear-issue` skill for each issue; only
+the orchestration layer differs. See the Architecture Note in
+`resolve-linear-project/SKILL.md` for details.

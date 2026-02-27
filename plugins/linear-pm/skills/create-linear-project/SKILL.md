@@ -60,9 +60,9 @@ Use `blockedBy` to establish order: Foundation issues have no blockers, later ph
 
 ## Creating in Linear
 
-**Project:** `mcp__linear__create_project` with Team
+**Project:** Use the `save_project` tool from the Linear MCP server (omit `id` to create) with Team
 
-**Issues:** `mcp__linear__create_issue` with:
+**Issues:** Use the `save_issue` tool from the Linear MCP server (omit `id` to create) with:
 - `project`: Link to project created above
 - `blockedBy`: Array of blocking issue IDs
 - `labels`: Feature | Improvement | Bug

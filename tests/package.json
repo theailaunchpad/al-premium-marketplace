@@ -8,7 +8,8 @@
     "setup:single": "bun run setup-single-issue.ts",
     "teardown:single": "bun run teardown-single-issue.ts",
     "test:e2e": "bun test e2e/ --timeout 1800000",
-    "test:e2e:issue-a": "bun test e2e/resolve-issue.test.ts --timeout 1800000"
+    "test:e2e:issue-a": "bun test e2e/resolve-issue.test.ts --timeout 1800000",
+    "test:static": "bun test e2e/plugin-static.test.ts"
   },
   "dependencies": {
     "@linear/sdk": "^37.0.0"

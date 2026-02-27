@@ -25,6 +25,28 @@ project of parallel issues.
 | `pr-reviewer` | Reviews a pull request and provides feedback. |
 | `root-cause-analyzer` | Conducts a thorough root cause analysis using the systematic-debugging skill. |
 
+## Required Linear MCP Methods
+
+Skills reference these methods by name. Claude resolves the correct
+tool prefix (e.g., `mcp__plugin_linear-pm_linear__`, `mcp__claude_ai_Linear__`)
+at runtime based on the installation method.
+
+| Method | Used by |
+|--------|---------|
+| `get_issue` | resolve-linear-issue, enhance-linear-bug-issue |
+| `save_issue` | create-linear-issue, create-linear-project, enhance-linear-bug-issue |
+| `get_project` | resolve-linear-project |
+| `save_project` | create-linear-project |
+| `list_issues` | resolve-linear-project |
+
+## Bundled Skills: TDD & Systematic Debugging
+
+`test-driven-development` and `systematic-debugging` are general-purpose
+skills bundled with this plugin because the Linear PM workflows depend on
+them directly. `resolve-linear-issue` enforces TDD for all implementations,
+and `root-cause-analyzer` uses systematic-debugging for bug investigation.
+They are not Linear-specific but are required for the plugin to function.
+
 ## Prerequisites
 
 - Claude Code CLI
@@ -50,3 +72,22 @@ project of parallel issues.
 >   cases may not be handled gracefully.
 >
 > Claude will ask for explicit confirmation before running this skill.
+
+## Changelog
+
+### v1.5.0
+
+- **Fixed** MCP tool references — all skills now use portable method names
+  (`save_issue`, `save_project`, `get_issue`, etc.) instead of
+  installation-specific prefixed names
+- **Fixed** priority label: `3=Medium` → `3=Normal` to match Linear API
+- **Fixed** ghost reference to nonexistent "test-analyzer" agent
+- **Fixed** redundant issue fetch in resolve-linear-issue Step 3
+- **Added** shared preflight checks extracted from resolve-linear-issue
+  and resolve-linear-project (~70 lines of duplication removed)
+- **Added** architecture notes documenting headless `claude -p` vs
+  Agent Teams coordination models
+- **Added** Required Linear MCP Methods table and bundled skills note
+- **Expanded** enhance-linear-bug-issue with proper structure and
+  clearer update instructions
+- **Removed** empty `commands/` directory

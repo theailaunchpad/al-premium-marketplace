@@ -103,9 +103,9 @@ Create issues that an AI coding agent can pick up and implement without needing 
 
 ## Creating the Issue
 
-Use `mcp__linear__create_issue` with:
+Use the `save_issue` tool from the Linear MCP server (omit `id` to create a new issue) with:
 - **Team:** <your-team>
 - **Project:** <your-project>
 - **State:** <your-state>
-- **Priority:** 1=Urgent, 2=High, 3=Medium, 4=Low
+- **Priority:** 1=Urgent, 2=High, 3=Normal, 4=Low
 - **Label:** Based on issue type
